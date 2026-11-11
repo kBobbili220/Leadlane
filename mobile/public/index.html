@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#203c32" />
+    <meta name="description" content="Set up your detailing services and get ready for your next customer." />
+    <title>Your first service · Detailflow</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='14' fill='%23203c32'/%3E%3Cpath d='M24 9 29 19 39 24 29 29 24 39 19 29 9 24 19 19Z' fill='%23d5ebad'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <svg class="icon-definitions" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="icon-spark" viewBox="0 0 24 24"><path d="m12 2 3.2 6.8L22 12l-6.8 3.2L12 22l-3.2-6.8L2 12l6.8-3.2L12 2Z" /></symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6" /></symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="icon-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="icon-car" viewBox="0 0 24 24"><path d="m5 8 2-4h10l2 4 2 3v7H3v-7l2-3Zm0 0h14M3 13h18M6 18v2m12-2v2M6 11h2m8 0h2"/></symbol>
+    </svg>
+
+    <div class="app-shell">
+      <aside class="story" aria-label="Welcome to Detailflow">
+        <a class="brand brand-light" href="./" aria-label="Detailflow home">
+          <span class="brand-mark"><svg><use href="#icon-spark"/></svg></span>detailflow<span class="brand-dot">.</span>
+        </a>
+        <div class="story-content">
+          <p class="eyebrow story-eyebrow">LESS ADMIN. MORE SHINE.</p>
+          <h2>You do the detailing.<br />We’ll handle<br /><em>the details.</em></h2>
+          <p class="story-description">A little setup today. A smoother day<br />at the shop tomorrow.</p>
+          <div class="preview-stage">
+            <span class="preview-orbit orbit-one"></span><span class="preview-orbit orbit-two"></span>
+            <article class="service-preview" aria-label="Live service preview">
+              <div class="preview-top"><span class="preview-icon"><svg class="icon"><use href="#icon-car"/></svg></span><span class="preview-status" id="preview-status">Available for quotes</span></div>
+              <p class="preview-eyebrow">YOUR SERVICE, AT A GLANCE</p>
+              <h3 id="preview-name">Your signature service</h3>
+              <p id="preview-description" class="preview-description">The details that make your business stand out.</p>
+              <div class="preview-bottom"><div><span class="preview-from" id="preview-from">Starting at</span><strong id="preview-price">$0.00</strong></div><span id="preview-duration" class="preview-duration">Flexible duration</span></div>
+            </article>
+            <div class="preview-note"><span class="note-spark">✦</span> One less thing between you and your next customer.</div>
+          </div>
+        </div>
+        <div class="story-footer"><span class="tiny-dot"></span> A clean start for your business.</div>
+      </aside>
+
+      <main class="workspace">
+        <header class="workspace-header">
+          <a class="brand brand-mobile" href="./" aria-label="Detailflow home"><span class="brand-mark"><svg><use href="#icon-spark"/></svg></span>detailflow<span class="brand-dot">.</span></a>
+          <span class="desktop-breadcrumb">YOUR WORKSPACE <span>/</span> GETTING STARTED</span>
+          <button class="catalog-link" id="open-catalog" type="button"><svg class="icon"><use href="#icon-grid"/></svg><span>My services</span></button>
+        </header>
+
+        <div class="form-content" id="setup-view">
+          <div class="setup-step"><span class="step-number">01</span><span>LET’S BUILD YOUR CATALOG</span><span class="step-count">SERVICE SETUP</span></div>
+          <div class="intro"><h1>Start with a<br class="mobile-break" /> great service.</h1><p>Add what you do best. We’ll keep the details ready<br class="desktop-break" /> for your next customer.</p></div>
+
+          <form id="service-form" novalidate>
+            <fieldset id="form-fields">
+              <section class="form-section" aria-labelledby="details-title">
+                <h2 class="section-title" id="details-title"><span>01</span> The essentials</h2>
+                <div class="field"><label for="name">Service name <span class="required" aria-label="required">*</span></label><input id="name" name="name" type="text" placeholder="e.g. Signature full detail" maxlength="200" required autocomplete="off" aria-describedby="name-error" /><p class="field-error" id="name-error" hidden></p></div>
+                <div class="field"><label for="description">Description <span class="optional">Optional</span></label><textarea id="description" name="description" rows="3" placeholder="What’s included? Let your customers know what makes this service worth it." aria-describedby="description-hint"></textarea><p class="field-hint" id="description-hint">A few clear details go a long way.</p></div>
+              </section>
+
+              <section class="form-section pricing-section" aria-labelledby="pricing-title">
+                <h2 class="section-title" id="pricing-title"><span>02</span> Price &amp; time</h2>
+                <div class="pricing-options" role="radiogroup" aria-label="Pricing type">
+                  <label class="pricing-option"><input type="radio" name="pricing_mode" value="fixed" checked /><span class="radio-mark"></span><span><strong>Starting price</strong><small>Give customers a starting point</small></span></label>
+                  <label class="pricing-option"><input type="radio" name="pricing_mode" value="custom" /><span class="radio-mark"></span><span><strong>Custom quote</strong><small>Price it after reviewing the job</small></span></label>
+                </div>
+                <div class="field-row">
+                  <div class="field"><label for="price">Starting price <span class="required" id="price-required" aria-label="required">*</span></label><div class="input-wrap" id="price-wrap"><span class="input-prefix">$</span><input id="price" name="price" type="text" inputmode="decimal" placeholder="150.00" autocomplete="off" aria-describedby="price-error" /><span class="input-suffix">USD</span></div><p class="field-error" id="price-error" hidden></p></div>
+                  <div class="field"><label for="duration">Duration <span class="optional">Optional</span></label><div class="input-wrap"><svg class="icon input-prefix clock-prefix"><use href="#icon-clock"/></svg><input id="duration" name="duration" type="text" inputmode="numeric" placeholder="120" autocomplete="off" aria-describedby="duration-error"/><span class="input-suffix">min</span></div><p class="field-error" id="duration-error" hidden></p></div>
+                </div>
+                <p class="custom-price-hint" id="custom-price-hint" hidden>You’ll set the price when you prepare the customer’s quote.</p>
+                <div class="field unit-field"><label for="unit">Priced per</label><select id="unit" name="unit" aria-describedby="unit-error"><option value="vehicle">Vehicle</option><option value="package">Package</option><option value="hour">Hour</option><option value="service">Service</option></select><p class="field-error" id="unit-error" hidden></p></div>
+              </section>
+
+              <label class="availability"><span><strong>Ready for customers</strong><small>Make this service available for new quotes.</small></span><input id="is-active" name="is_active" type="checkbox" role="switch" checked /><span class="switch-track" aria-hidden="true"></span></label>
+            </fieldset>
+
+            <div class="save-error" id="save-error" role="alert" hidden><strong id="save-error-title">We couldn’t save your service.</strong><p id="save-error-message"></p><button type="button" class="text-button" id="error-check-catalog" hidden>Check my services <span aria-hidden="true">↗</span></button></div>
+            <div class="form-footer"><button class="primary-button" id="submit-button" type="submit"><span class="button-label">Create service</span><svg class="icon button-arrow"><use href="#icon-arrow"/></svg><span class="spinner" hidden></span></button><p><svg class="icon"><use href="#icon-check"/></svg> You can always edit these details later.</p></div>
+          </form>
+          <p class="workspace-footer">A little more organized. A lot more ready.</p>
+        </div>
+
+        <section class="success-view" id="success-view" aria-labelledby="success-title" hidden>
+          <div class="success-mark"><svg class="icon"><use href="#icon-check"/></svg><span class="success-spark">✦</span></div>
+          <p class="eyebrow">ONE GOOD THING, ALL SET.</p><h1 id="success-title" tabindex="-1">Your service<br /><em>is ready.</em></h1><p class="success-description" id="success-description">Added to your catalog and ready for your next quote.</p>
+          <article class="saved-card"><div class="saved-card-top"><span class="preview-icon"><svg class="icon"><use href="#icon-car"/></svg></span><span class="status-badge" id="saved-status">Active</span></div><h2 id="saved-name"></h2><p id="saved-description"></p><div class="saved-card-bottom"><strong id="saved-price"></strong><span id="saved-duration"></span></div></article>
+          <button class="primary-button" id="success-catalog" type="button">View my services <svg class="icon"><use href="#icon-arrow"/></svg></button><button class="secondary-button" id="add-another" type="button">Add another service <span aria-hidden="true">+</span></button>
+        </section>
+        <noscript><p class="noscript">Please enable JavaScript to create and save a service.</p></noscript>
+      </main>
+    </div>
+
+    <dialog id="catalog-dialog" aria-labelledby="catalog-title">
+      <div class="catalog-header"><div><p class="eyebrow">YOUR WORKSPACE</p><h2 id="catalog-title">The service catalog.</h2></div><button class="icon-button" id="close-catalog" type="button" aria-label="Close service catalog"><svg class="icon"><use href="#icon-close"/></svg></button></div>
+      <p class="catalog-intro">Everything you offer, in one place.</p>
+      <div id="catalog-content" aria-live="polite"></div>
+      <button class="secondary-button" id="catalog-more" type="button" hidden>Load more services</button>
+      <button class="secondary-button" id="catalog-retry" type="button" hidden>Try again</button>
+    </dialog>
+  </body>
+</html>

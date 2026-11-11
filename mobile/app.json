@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Detailflow",
+    "slug": "detailflow",
+    "scheme": "detailflow",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.detailflow.mobile",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Connect to your workspace on your local network during development.",
+        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true }
+      }
+    },
+    "android": {
+      "package": "com.detailflow.mobile",
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "plugins": [
+      ["expo-build-properties", { "android": { "usesCleartextTraffic": true } }]
+    ]
+  }
+}

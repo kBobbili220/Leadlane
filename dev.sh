@@ -23,6 +23,7 @@ for tool in node curl wslpath; do
   command -v "$tool" >/dev/null || fail "Missing $tool. Run this command in your Ubuntu/WSL terminal."
 done
 [[ -f "$PROJECT_ROOT/mobile/node_modules/expo/bin/cli" ]] || fail "Install mobile dependencies first: cd '$PROJECT_ROOT/mobile' && npm install"
+[[ -f "$PROJECT_ROOT/mobile/node_modules/expo-secure-store/package.json" ]] || fail "Owner login needs the new secure storage dependency. Run: cd '$PROJECT_ROOT/mobile' && npm install"
 
 # ADB_EXE can override the SDK location using a Linux/WSL path.
 if [[ -n "${ADB_EXE:-}" ]]; then

@@ -27,7 +27,7 @@ export function resolveApiUrl({ apiUrl, hostUri } = {}) {
 function transport(connection) {
   const baseUrl = resolveApiUrl(connection);
   const fetchImpl = connection?.fetchImpl ?? globalThis.fetch;
-  return { fetchImpl: (path, options) => fetchImpl(`${baseUrl}${path}`, options) };
+  return { accessToken: connection?.accessToken, fetchImpl: (path, options) => fetchImpl(`${baseUrl}${path}`, options) };
 }
 
 export function createNativeService(payload, connection) {

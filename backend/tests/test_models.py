@@ -18,7 +18,7 @@ from sqlalchemy.schema import CreateIndex, CreateTable
 from backend.app.models import Base, Business, Contact, Inquiry, Quote, QuoteItem, Service
 from backend.app.schemas import QuoteRead
 
-MIGRATION = Path(__file__).resolve().parents[1] / "app/db/001_initial.sql"
+MIGRATIONS = Path(__file__).resolve().parents[1] / "app/db"
 DIALECT = postgresql.dialect()
 
 
@@ -80,7 +80,8 @@ def table_signature(statement):
 class ModelParityTests(unittest.TestCase):
     def test_all_columns_constraints_and_indexes_match_migration(self):
         expected_tables, expected_indexes = {}, {}
-        for raw in parse_sql(MIGRATION.read_text()):
+        sql = "\n".join(path.read_text() for path in sorted(MIGRATIONS.glob('*.sql')))
+        for raw in parse_sql(sql):
             statement = raw.stmt
             if isinstance(statement, ast.CreateStmt):
                 expected_tables[statement.relation.relname] = table_signature(statement)

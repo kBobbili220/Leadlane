@@ -45,9 +45,11 @@ source .venv/bin/activate
 fastapi dev backend/app/main.py --host 0.0.0.0
 ```
 
-The root `.env` still holds `DATABASE_URL` and `DEV_BUSINESS_ID`. Keep those values
-on the server. The current development business context is shared by requests;
-use a trusted local network while authentication is being implemented.
+The root `.env` holds `DATABASE_URL` and optional `AUTH_SESSION_TTL_DAYS`. Owner
+identity now comes from login, not `DEV_BUSINESS_ID`. Apply the authentication
+migration and create an owner for existing development data using
+[the upgrade guide](../docs/authentication.md). New registrations create a new
+business. Use a trusted local network for development HTTP; deployments need HTTPS.
 
 ## 2. Configure the phone's API address
 
@@ -130,7 +132,8 @@ remove the broad HTTP transport exceptions before preparing a release build.
 
 ## Test persistence
 
-1. Open Detailflow in Expo Go or the installed development app.
+1. Open Detailflow in Expo Go or the installed development app and sign in (or
+   create an account for a new business).
 2. Enter a name, description, starting price or custom pricing, optional duration,
    pricing unit and availability.
 3. Tap **Create service**. Success appears only after the existing API returns
@@ -138,7 +141,10 @@ remove the broad HTTP transport exceptions before preparing a release build.
 4. Open **My services** to fetch the real catalog. Close/reopen the app and check
    the catalog again to confirm persistence. Pull down to refresh it.
 
-The native app uses `POST /api/v1/services` and `GET /api/v1/services`. Prices are
+The native app signs in through `/api/v1/auth`, remembers its session in Expo
+SecureStore, and sends bearer authorization to `POST /api/v1/services` and
+`GET /api/v1/services`. The header sign-out button clears the local session and
+revokes the server session when reachable. Prices are
 currently shown as USD, matching the default business currency. Dollar amounts
 are converted to exact integer cents; custom prices and blank durations become
 null. Saving disables the form and guards repeated taps. Failed saves retain
@@ -155,7 +161,9 @@ python -m backend.app.db.check_connection
 
 ## Files
 
-- `App.tsx`, `index.ts`: native app entry point and safe-area/status-bar setup.
+- `App.tsx`, `index.ts`: session gate, native entry point and safe-area/status-bar setup.
+- `src/auth/`: secure remembered sessions, restoration, logout and authenticated requests.
+- `src/screens/AuthScreen.tsx`: owner registration and login.
 - `src/screens/ServiceSetupScreen.tsx`: native onboarding form and saved state.
 - `src/components/CatalogSheet.tsx`: native modal/list, refresh and pagination.
 - `src/components/ServiceCard.tsx`: shared native preview/saved service card.
@@ -164,8 +172,8 @@ python -m backend.app.db.check_connection
 - `src/theme.ts`: cream, forest green and serif design styles.
 - `public/service-client.mjs`: validation and API transport shared with the
   original browser preview. It has no DOM dependencies.
-- `public/`: retained browser preview at `/onboarding/`, independent of the
-  native app; useful as a design reference, not needed for phone testing.
+- `public/`: retained read-only browser preview at `/onboarding/`; owner service
+  creation is available through the authenticated native app.
 
 ## Checks
 

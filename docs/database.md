@@ -1,17 +1,60 @@
 # Database design
 
+## Connect from the command line
+
+Run this in your **Ubuntu/WSL terminal** to log in to the local development database:
+
+```bash
+psql -h localhost -p 5432 -U service_app -d service_business_dev
+```
+
+Enter the database password you configured for `service_app` when prompted. Use
+the same password as the root `.env` file's `DATABASE_URL`. If you configured a
+different host, port, username or database, substitute those values in the command.
+You can run this from any directory; activating the Python virtual environment is
+not required.
+
+If PostgreSQL is stopped, start it first:
+
+```bash
+sudo service postgresql start
+```
+
+Once connected, these `psql` commands are useful:
+
+| Command | Purpose |
+| --- | --- |
+| `\conninfo` | Show the current database connection. |
+| `\dt` | List tables. |
+| `\d services` | Inspect the services table. |
+| `\q` | Exit PostgreSQL. |
+
+To inspect services saved by the mobile app:
+
+```sql
+SELECT id, name, base_price_minor, estimated_duration_minutes, is_active
+FROM services
+ORDER BY created_at DESC;
+```
+
+SQL statements end with a semicolon (`;`). The backslash commands above do not
+need one.
+
+## Initialize the schema
+
 The initial schema is [backend/app/db/001_initial.sql](../backend/app/db/001_initial.sql), targeting PostgreSQL 14 or newer. It creates exactly the six requested tables. Apply it once to an empty application database:
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/app/db/001_initial.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/app/db/002_owner_auth.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/tests/schema_smoke.sql
 ```
 
-The second command tests constraints and generated amounts with rolled-back fixtures. The migration runs in a transaction. Future changes should be incremental migrations rather than editing and rerunning this file on an existing database.
+The final command tests core constraints and generated amounts with rolled-back fixtures. Each migration runs in a transaction. `002_owner_auth.sql` adds users, memberships, sessions and rate-limit counters without changing existing core data. Follow [owner setup](authentication.md) to connect an account to an existing business. Future changes should be incremental migrations rather than editing and rerunning these files on an existing database.
 
 ## Python models and API schemas
 
-The [`backend/app/models`](../backend/app/models) package provides SQLAlchemy 2 mappings for the existing tables. Importing it registers all six tables in `Base.metadata` without connecting to or changing a database:
+The [`backend/app/models`](../backend/app/models) package provides SQLAlchemy 2 mappings for the six core tables and four authentication tables. Importing it registers all ten tables in `Base.metadata` without connecting to or changing a database:
 
 ```python
 from backend.app.models import Base, Business, Contact, Service, Inquiry, Quote, QuoteItem
@@ -67,7 +110,7 @@ erDiagram
 
 | Table | Purpose and important fields |
 | --- | --- |
-| `businesses` | Tenant, unique public `slug`, contact information, IANA timezone, default currency, active flag, address. Owner authentication/membership is a later concern. |
+| `businesses` | Tenant, unique public `slug`, contact information, IANA timezone, default currency, active flag, address. The owner is linked through `business_memberships`. |
 | `contacts` | Business-specific customer, name, email and/or phone, preferred channel, private notes, archive timestamp. A contact may submit many inquiries. |
 | `services` | Business catalog, optional starting price, duration, display order, unit label and active flag. A NULL base price means individualized pricing; zero means free. |
 | `inquiries` | Contact, optional primary requested service, vehicle and condition details, service address, preferred time window, lead status, internal notes, loss reason and retry key. |
@@ -80,7 +123,7 @@ Every row has a UUID primary key and `created_at`/`updated_at` timestamps. The d
 
 Every tenant-owned table has `business_id`. Composite foreign keys such as `(business_id, contact_id)` ensure that an inquiry cannot reference another business's customer. Equivalent constraints protect services, quotes and quote items. The apparently redundant `(business_id, id)` unique constraints are the targets for these foreign keys. See [PostgreSQL's constraint documentation](https://www.postgresql.org/docs/14/ddl-constraints.html).
 
-These constraints protect relationships. API authorization must still scope every owner query to the authenticated business; UUIDs are not access control. There is no row-level security policy or user authentication implemented in this migration. Public responses must explicitly select safe fields and exclude internal notes, token hashes and unrelated contact records.
+These constraints protect relationships. Service API authorization now scopes queries through authenticated owner memberships, with no development-business bypass. Authentication is added by migration 002; PostgreSQL row-level security is not configured. Public responses must explicitly select safe fields and exclude internal notes, password hashes, token digests and unrelated contact records. See [the authentication design](authentication.md).
 
 Inbox indexes begin with business ID and support both all-lead and status-filtered listings. Use keyset pagination ordered by `(created_at DESC, id DESC)`. Contact history and foreign-key lookups have matching indexes. Quote revisions and line positions have scoped unique indexes. A partial unique index allows only one accepted quote per inquiry. Separate due-time indexes support workers scanning sent quotes across businesses for follow-ups and expiry.
 

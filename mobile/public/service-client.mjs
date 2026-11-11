@@ -3,11 +3,12 @@ const MAX_MONEY = BigInt(Number.MAX_SAFE_INTEGER);
 const MAX_DURATION = 2 ** 31 - 1;
 
 export class ServiceRequestError extends Error {
-  constructor(message, { uncertain = false, fields = {} } = {}) {
+  constructor(message, { uncertain = false, fields = {}, status } = {}) {
     super(message);
     this.name = "ServiceRequestError";
     this.uncertain = uncertain;
     this.fields = fields;
+    this.status = status;
   }
 }
 
@@ -71,13 +72,13 @@ function isService(value) {
     && typeof value.unit_label === "string" && typeof value.is_active === "boolean";
 }
 
-async function request(path, { method = "GET", body, fetchImpl = globalThis.fetch, timeoutMs = 20000 } = {}) {
+async function request(path, { method = "GET", body, accessToken, fetchImpl = globalThis.fetch, timeoutMs = 20000 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetchImpl(path, {
       method,
-      headers: { Accept: "application/json", ...(body ? { "Content-Type": "application/json" } : {}) },
+      headers: { Accept: "application/json", ...(body ? { "Content-Type": "application/json" } : {}), ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
       signal: controller.signal,
     });
@@ -94,11 +95,13 @@ async function request(path, { method = "GET", body, fetchImpl = globalThis.fetc
       }
       const uncertain = method === "POST" && response.status >= 500;
       throw new ServiceRequestError(
-        uncertain ? "We couldn’t confirm the save. Check your services before trying again."
+        response.status === 401 ? "Your session has expired. Please sign in again."
+          : response.status === 403 ? "Your business access is unavailable."
+          : uncertain ? "We couldn’t confirm the save. Check your services before trying again."
           : response.status === 422 ? "Please check the highlighted details."
           : method === "POST" ? "We couldn’t save this service. Please try again in a moment."
           : "We couldn’t load your services. Please try again in a moment.",
-        { uncertain, fields },
+        { uncertain, fields, status: response.status },
       );
     }
     return { data, status: response.status };

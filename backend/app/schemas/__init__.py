@@ -1,5 +1,7 @@
 """Validated API inputs and explicit owner/public response projections."""
 
+from .auth import AuthIdentityRead, AuthTokenRead, LoginRequest, RegisterRequest
+
 from .business import BusinessCreate, BusinessRead
 from .common import InquiryStatus, PreferredChannel, QuoteStatus
 from .contact import ContactCreate, ContactRead, PublicContactCreate
@@ -9,6 +11,7 @@ from .quote_item import PublicQuoteItemRead, QuoteItemCreate, QuoteItemRead
 from .service import ServiceCreate, ServiceRead, ServiceUpdate
 
 __all__ = [
+    "AuthIdentityRead", "AuthTokenRead", "LoginRequest", "RegisterRequest",
     "BusinessCreate", "BusinessRead", "ContactCreate", "ContactRead", "PublicContactCreate",
     "ServiceCreate", "ServiceRead", "ServiceUpdate", "InquiryCreate", "InquiryRead", "InquiryDetailRead",
     "PublicInquiryCreate", "QuoteCreate", "QuoteRead", "QuoteSummaryRead", "PublicQuoteRead",

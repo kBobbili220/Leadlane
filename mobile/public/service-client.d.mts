@@ -26,9 +26,10 @@ export interface ServiceRecord extends ServicePayload {
 export class ServiceRequestError extends Error {
   uncertain: boolean;
   fields: FormErrors;
-  constructor(message: string, options?: { uncertain?: boolean; fields?: FormErrors });
+  status?: number;
+  constructor(message: string, options?: { uncertain?: boolean; fields?: FormErrors; status?: number });
 }
 export function buildServicePayload(values: ServiceFormValues): { payload: ServicePayload | null; errors: FormErrors };
 export function formatPrice(minor: number | null): string;
-export function createService(payload: ServicePayload, options?: { fetchImpl?: typeof fetch; timeoutMs?: number }): Promise<ServiceRecord>;
-export function listServices(options?: { offset?: number; limit?: number; fetchImpl?: typeof fetch; timeoutMs?: number }): Promise<ServiceRecord[]>;
+export function createService(payload: ServicePayload, options?: { accessToken?: string; fetchImpl?: typeof fetch; timeoutMs?: number }): Promise<ServiceRecord>;
+export function listServices(options?: { accessToken?: string; offset?: number; limit?: number; fetchImpl?: typeof fetch; timeoutMs?: number }): Promise<ServiceRecord[]>;

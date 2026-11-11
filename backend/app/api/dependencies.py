@@ -1,30 +1,36 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from backend.app.core.config import Settings, get_settings
 from backend.app.db.session import get_session
-from backend.app.models import Business
+from backend.app.services.auth import OwnerContext, authenticate, unauthorized
 
 DatabaseSession = Annotated[Session, Depends(get_session)]
+bearer = HTTPBearer(auto_error=False)
 
 
-def get_current_business_id(
-    session: DatabaseSession,
-    settings: Annotated[Settings, Depends(get_settings)],
-) -> UUID:
-    """Development context; replace this dependency when authentication is added."""
-    if settings.dev_business_id is None:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Business context is not configured")
-    business_id = session.scalar(
-        select(Business.id).where(Business.id == settings.dev_business_id, Business.is_active.is_(True))
-    )
-    if business_id is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Business not found")
-    return business_id
+def get_bearer_token(credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]) -> str:
+    # This dependency runs before opening a DB session, including missing headers.
+    if credentials is None or credentials.scheme.lower() != "bearer" or not 1 <= len(credentials.credentials) <= 512:
+        raise unauthorized()
+    return credentials.credentials
+
+
+BearerToken = Annotated[str, Depends(get_bearer_token)]
+
+
+def get_current_owner(token: BearerToken, session: DatabaseSession) -> OwnerContext:
+    return authenticate(session, token)
+
+
+CurrentOwner = Annotated[OwnerContext, Depends(get_current_owner)]
+
+
+def get_current_business_id(owner: CurrentOwner) -> UUID:
+    return owner.business.id
 
 
 CurrentBusinessID = Annotated[UUID, Depends(get_current_business_id)]

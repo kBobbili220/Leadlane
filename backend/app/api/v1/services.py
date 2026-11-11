@@ -1,13 +1,13 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from backend.app.api.dependencies import CurrentBusinessID, DatabaseSession
+from backend.app.api.dependencies import CurrentBusinessID, DatabaseSession, get_current_owner
 from backend.app.schemas import ServiceCreate, ServiceRead, ServiceUpdate
 from backend.app.services import services
 
-router = APIRouter(prefix="/services", tags=["services"])
+router = APIRouter(prefix="/services", tags=["services"], dependencies=[Depends(get_current_owner)])
 
 
 @router.post("", response_model=ServiceRead, status_code=status.HTTP_201_CREATED)

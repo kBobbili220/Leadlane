@@ -4,11 +4,12 @@ import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View }
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { ServiceRecord } from "../../public/service-client.mjs";
 import { listNativeServices } from "../api/services.mjs";
-import { getConnection } from "../connection";
+import { useAuthenticatedConnection } from "../auth/AuthProvider";
 import { colors, common, serif } from "../theme";
 import { ServiceCard } from "./ServiceCard";
 
 export function CatalogSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const connection = useAuthenticatedConnection();
   const [items, setItems] = useState<ServiceRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -25,7 +26,7 @@ export function CatalogSheet({ visible, onClose }: { visible: boolean; onClose: 
     setRefreshing(reset && items.length > 0);
     setError(null);
     try {
-      const rows = await listNativeServices({ offset: reset ? 0 : items.length, limit: 50 }, getConnection());
+      const rows = await listNativeServices({ offset: reset ? 0 : items.length, limit: 50 }, connection);
       if (request !== generation.current) return;
       setItems((previous) => reset ? rows : [...previous, ...rows]);
       setHasMore(rows.length === 50);

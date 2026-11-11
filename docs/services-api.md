@@ -1,59 +1,44 @@
 # Service endpoints
 
-Start the API from the repository root after installing dependencies and applying
-[the existing migration](../backend/app/db/001_initial.sql). No additional SQL
-migration is required for these endpoints.
+Start the API after applying the initial schema and `002_owner_auth.sql`.
+See [owner authentication and existing-business setup](authentication.md).
 
 ## Development configuration
 
-Copy [`.env.example`](../.env.example) to `.env` and set:
+The root `.env` supplies `DATABASE_URL` and optional `AUTH_SESSION_TTL_DAYS`
+(default 14). `DEV_BUSINESS_ID` is no longer used. Register a new owner/business in
+the native app, or use the local owner setup command for an existing business.
+Every service endpoint requires a bearer session and derives its business from
+that owner's active membership; request headers/bodies cannot switch tenants.
 
-```dotenv
-DATABASE_URL=postgresql://service_app:your_password@localhost:5432/service_business_dev
-DEV_BUSINESS_ID=the-uuid-of-your-business
+Sign in using `/api/v1/auth/login` in Swagger UI, copy the returned access token,
+and paste it into **Authorize**. For the curl examples below, set `OWNER_TOKEN`
+without putting the token into shell history:
+
+```bash
+read -rsp "Owner access token: " OWNER_TOKEN
+printf '\n'
 ```
 
-Find the UUID of an existing active business in PostgreSQL:
-
-```sql
-SELECT id, slug, name FROM businesses WHERE is_active = true;
-```
-
-If your development database has no business yet, create one and copy the returned
-UUID into `DEV_BUSINESS_ID`:
-
-```sql
-INSERT INTO businesses (slug, name)
-VALUES ('demo-detailing', 'Demo Detailing')
-RETURNING id;
-```
-
-Then run:
+Run the API from the repository root:
 
 ```bash
 fastapi dev backend/app/main.py
 ```
 
-Environment variables override `.env`. Restart the process after changing settings.
-Plain `postgresql://` and `postgres://` URLs, as well as `postgresql+psycopg://`,
-are normalized to SQLAlchemy's psycopg driver internally.
-
-The development business setting is not authentication. It provides an explicit
-server-side business context while owner login/membership is being implemented.
-Every client shares that business, so keep this mode for local development. Neither
-request bodies nor headers can switch businesses. Replace
-`api.dependencies.get_current_business_id` with membership-based authorization
-when authentication is added.
+Plain `postgresql://`, `postgres://`, and `postgresql+psycopg://` database URLs are
+normalized to the psycopg driver. Settings changes require a server restart.
 
 ## Create and retrieve
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/services \
+  -H "Authorization: Bearer $OWNER_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Full detail","description":"Interior and exterior","base_price_minor":15000,"estimated_duration_minutes":120,"sort_order":0}'
 
-curl http://127.0.0.1:8000/api/v1/services
-curl http://127.0.0.1:8000/api/v1/services/SERVICE_UUID
+curl -H "Authorization: Bearer $OWNER_TOKEN" http://127.0.0.1:8000/api/v1/services
+curl -H "Authorization: Bearer $OWNER_TOKEN" http://127.0.0.1:8000/api/v1/services/SERVICE_UUID
 ```
 
 POST returns `201` with a `ServiceRead` object, including database-generated UUID
@@ -70,6 +55,7 @@ false), `limit` (default 50, maximum 100) and `offset` (default 0). Ordering is
 
 ```bash
 curl -X PATCH http://127.0.0.1:8000/api/v1/services/SERVICE_UUID \
+  -H "Authorization: Bearer $OWNER_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"base_price_minor":17500,"description":null}'
 ```
@@ -83,10 +69,11 @@ Business IDs, service IDs and timestamps are never writable through these schema
 ## Archive and restore
 
 ```bash
-curl -X DELETE http://127.0.0.1:8000/api/v1/services/SERVICE_UUID
-curl 'http://127.0.0.1:8000/api/v1/services?include_archived=true'
+curl -X DELETE -H "Authorization: Bearer $OWNER_TOKEN" http://127.0.0.1:8000/api/v1/services/SERVICE_UUID
+curl -H "Authorization: Bearer $OWNER_TOKEN" 'http://127.0.0.1:8000/api/v1/services?include_archived=true'
 
 curl -X PATCH http://127.0.0.1:8000/api/v1/services/SERVICE_UUID \
+  -H "Authorization: Bearer $OWNER_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"is_active":true}'
 ```
@@ -99,10 +86,10 @@ archived service.
 
 ## Errors and transactions
 
-Unknown services and services from another business return `404`. A missing or
-inactive configured business also returns `404`. Invalid UUIDs, request fields
-or pagination values return `422`. An unconfigured database/business context or
-an unavailable database returns `503` without connection details.
+Missing/invalid sessions return `401`; inactive business access returns `403`.
+Unknown services and services from another business return `404`. Invalid UUIDs,
+request fields or pagination values return `422`. An unconfigured or unavailable
+database returns `503` without connection details.
 
 Each request owns a database session. Mutations flush and validate their response
 before committing. Failed requests close their session and roll back outstanding

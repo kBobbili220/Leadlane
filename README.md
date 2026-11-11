@@ -18,15 +18,16 @@ python -m pip install -e .
 cp .env.example .env
 ```
 
-Edit `.env` with your PostgreSQL connection URL and set `DEV_BUSINESS_ID` to the
-UUID of an existing active business. Apply the SQL migration first. Settings are
+Edit `.env` with your PostgreSQL connection URL. Apply `001_initial.sql` and then
+`002_owner_auth.sql`. Settings are
 loaded from `.env` at the repository root, with environment variables taking
 precedence. Restart the API after changing configuration.
 
-`DEV_BUSINESS_ID` is a temporary single-business context for local development.
-All requests share that business; authentication is not implemented. It will be
-replaced by verified user membership when authentication is added. An unconfigured
-database or business context returns `503`; health checks remain available.
+Owners register and sign in using email/password. Sessions are stored securely
+on the device and expire after 14 days by default. All service endpoints require
+a bearer session; `DEV_BUSINESS_ID` is no longer used. To link an owner to an
+existing development business without losing services, follow
+[the authentication upgrade guide](docs/authentication.md).
 
 ## Run
 
@@ -50,7 +51,7 @@ For the native iPhone/Android app, run FastAPI with `--host 0.0.0.0`, configure
 `npm start` in `mobile/`. Open the project in a compatible Expo Go build or a
 development build on your phone. Create a service, then use **My services** to see
 records saved in PostgreSQL. See [`mobile/README.md`](mobile/README.md) for the
-complete device setup. The original browser preview remains at `/onboarding/`.
+complete device setup. The browser page at `/onboarding/` is now a read-only design preview.
 
 | Method | Endpoint | Behavior |
 | --- | --- | --- |
@@ -60,7 +61,7 @@ complete device setup. The original browser preview remains at `/onboarding/`.
 | PATCH | `/api/v1/services/{id}` | Update supplied fields; returns `200`. |
 | DELETE | `/api/v1/services/{id}` | Set `is_active=false`; returns `204` with no body. |
 
-All operations are scoped to the configured business. Missing services and
+All operations require login and are scoped to the owner's business. Missing services and
 services belonging to a different business return `404`. Archival preserves
 inquiry/quote references and historical quote item prices. Repeating DELETE is
 safe. PATCH with `{"is_active": true}` restores an archived service.
@@ -72,6 +73,7 @@ Create an example service:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/services \
+  -H "Authorization: Bearer $OWNER_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Full detail","base_price_minor":15000,"estimated_duration_minutes":120}'
 ```
@@ -81,6 +83,8 @@ pricing. PATCH leaves omitted fields unchanged. `description`, `base_price_minor
 and `estimated_duration_minutes` can be cleared with null. Other fields cannot be
 set to null. Empty patches, unknown fields and invalid values return `422`.
 See [the API guide](docs/services-api.md) for configuration and additional examples.
+Obtain `OWNER_TOKEN` by signing in through Swagger UI as described in the
+[authentication guide](docs/authentication.md#api-contract).
 
 ## Test
 

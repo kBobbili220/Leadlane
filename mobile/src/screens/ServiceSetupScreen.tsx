@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRef, useState, type ReactNode } from "react";
 import {
-  AccessibilityInfo, ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform,
+  AccessibilityInfo, ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Modal, Platform,
   Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,7 +12,7 @@ import {
 import { createNativeService } from "../api/services.mjs";
 import { CatalogSheet } from "../components/CatalogSheet";
 import { ServiceCard } from "../components/ServiceCard";
-import { getConnection } from "../connection";
+import { useAuth, useAuthenticatedConnection } from "../auth/AuthProvider";
 import { colors, common } from "../theme";
 
 const initialForm: ServiceFormValues = {
@@ -33,6 +33,9 @@ function Field({ label, optional, required, error, children }: {
 }
 
 export function ServiceSetupScreen() {
+  const auth = useAuth();
+  const connection = useAuthenticatedConnection();
+  const [loggingOut, setLoggingOut] = useState(false);
   const [form, setForm] = useState<ServiceFormValues>({ ...initialForm });
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
@@ -68,7 +71,7 @@ export function ServiceSetupScreen() {
     setSaving(true);
     Keyboard.dismiss();
     try {
-      const record = await createNativeService(result.payload, getConnection());
+      const record = await createNativeService(result.payload, connection);
       setSaved(record);
       scroll.current?.scrollTo({ y: 0, animated: false });
       AccessibilityInfo.announceForAccessibility("Your service has been saved.");
@@ -102,6 +105,12 @@ export function ServiceSetupScreen() {
         <Pressable onPress={() => { Keyboard.dismiss(); setCatalogOpen(true); }} hitSlop={8} accessibilityRole="button" accessibilityLabel="Open my services" style={({ pressed }) => [styles.catalogLink, pressed && common.pressed]}>
           <Ionicons name="grid-outline" size={16} color={colors.forest} /><Text style={styles.catalogLinkText}>My services</Text>
         </Pressable>
+        <Pressable disabled={saving || loggingOut} hitSlop={8} accessibilityRole="button" accessibilityLabel="Sign out" onPress={() => {
+          setLoggingOut(true);
+          void auth.signOut().then((revoked) => { if (!revoked) Alert.alert("Signed out on this device", "We couldn’t reach the server to end the remote session. It will expire automatically."); })
+            .catch(() => Alert.alert("Couldn’t sign out", "We couldn’t clear your saved session. Please try again."))
+            .finally(() => setLoggingOut(false));
+        }}><Ionicons name="log-out-outline" size={23} color={colors.forest} /></Pressable>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView ref={scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets={false}>
@@ -117,6 +126,7 @@ export function ServiceSetupScreen() {
             </View>
           ) : (
             <>
+              <Text style={[common.eyebrow, { marginBottom: 18 }]}>{auth.session?.business.name}</Text>
               <View style={styles.step}><View style={styles.stepCircle}><Text style={styles.stepNumber}>01</Text></View><Text style={styles.stepText}>LET’S BUILD YOUR CATALOG</Text></View>
               <Text accessibilityRole="header" style={[common.title, { marginTop: 23 }]}>Start with a{"\n"}great service.</Text>
               <Text style={[common.copy, { marginTop: 15, marginBottom: 27 }]}>Add what you do best. We’ll keep the details ready for your next customer.</Text>

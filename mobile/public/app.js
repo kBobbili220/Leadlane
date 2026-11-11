@@ -2,6 +2,12 @@ import { buildServicePayload, createService, formatPrice, listServices } from ".
 
 const byId = (id) => document.getElementById(id);
 const form = byId("service-form");
+// The retained browser screen is a design reference. Owner authentication and
+// service management live in the native app; the API rejects anonymous writes.
+byId("form-fields").disabled = true;
+byId("submit-button").disabled = true;
+byId("submit-button").querySelector(".button-label").textContent = "Create services in the mobile app";
+byId("open-catalog").hidden = true;
 const controls = { name: byId("name"), price: byId("price"), duration: byId("duration"), unit: byId("unit") };
 let saving = false;
 let catalogLoading = false;
@@ -87,6 +93,7 @@ function showSuccess(service) {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (byId("form-fields").disabled && !saving) return;
   if (saving) return;
   byId("save-error").hidden = true;
   const { payload, errors } = buildServicePayload(values());

@@ -5,42 +5,30 @@ table; UUID/time/string functions stand in for PostgreSQL defaults. PostgreSQL
 runs use the migrated schema and real quote items to check historical references.
 """
 
-from datetime import datetime, timezone
 import os
 import unittest
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event, select, text
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from backend.app.core.config import Settings, get_settings
 from backend.app.db.session import get_session
 from backend.app.main import app
 from backend.app.models import Business, Contact, Inquiry, Quote, QuoteItem, Service
+from database_helpers import fixture_owner, sqlite_database
 
 BASE = "/api/v1/services"
 
 
 class ServiceAPITests(unittest.TestCase):
     def build_database(self):
-        self.engine = create_engine(
-            "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-        )
-
-        @event.listens_for(self.engine, "connect")
-        def sqlite_functions(connection, _record):
-            connection.execute("PRAGMA foreign_keys=ON")
-            connection.create_function("gen_random_uuid", 0, lambda: uuid4().hex)
-            connection.create_function("now", 0, lambda: datetime.now(timezone.utc).isoformat())
-            connection.create_function("btrim", 1, lambda value: value.strip(" ") if value is not None else None)
-
+        self.engine = sqlite_database()
         with self.engine.begin() as connection:
-            connection.exec_driver_sql("CREATE TABLE businesses (id UUID PRIMARY KEY, is_active BOOLEAN NOT NULL)")
             for business_id, active in ((self.business_id, True), (self.other_id, True), (self.inactive_id, False)):
-                connection.exec_driver_sql("INSERT INTO businesses VALUES (?, ?)", (business_id.hex, active))
+                connection.exec_driver_sql("INSERT INTO businesses (id, slug, name, is_active) VALUES (?, ?, ?, ?)", (business_id.hex, f"test-{business_id}", "Detailer", active))
             Service.__table__.create(connection)
             connection.exec_driver_sql(
                 "CREATE TABLE historical_service_references (business_id UUID NOT NULL, service_id UUID NOT NULL, "
@@ -57,6 +45,8 @@ class ServiceAPITests(unittest.TestCase):
             session.add(other_service)
             session.commit()
             self.other_service_id = other_service.id
+            self.owner = fixture_owner(session, session.get(Business, self.business_id), "owner@example.com")
+            self.inactive_owner = fixture_owner(session, session.get(Business, self.inactive_id))
 
         def test_session():
             with self.sessions() as session:
@@ -64,9 +54,10 @@ class ServiceAPITests(unittest.TestCase):
 
         self.previous_overrides = app.dependency_overrides.copy()
         app.dependency_overrides[get_session] = test_session
-        app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None, dev_business_id=self.business_id)
+        app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
         self.client = TestClient(app)
         self.client.__enter__()
+        self.client.headers["Authorization"] = f"Bearer {self.owner.access_token}"
 
     def tearDown(self):
         self.client.__exit__(None, None, None)
@@ -178,12 +169,10 @@ class ServiceAPITests(unittest.TestCase):
         self.assertEqual(self.client.get(url).json(), service)
 
     def test_missing_or_inactive_business_context(self):
-        app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
-        self.assertEqual(self.client.get(BASE).status_code, 503)
-        for business_id in (uuid4(), self.inactive_id):
-            with self.subTest(business=business_id):
-                app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None, dev_business_id=business_id)
-                self.assertEqual(self.client.get(BASE).status_code, 404)
+        self.client.headers.pop("Authorization")
+        self.assertEqual(self.client.get(BASE).status_code, 401)
+        self.client.headers["Authorization"] = f"Bearer {self.inactive_owner.access_token}"
+        self.assertEqual(self.client.get(BASE).status_code, 403)
 
     def test_health_works_without_database_configuration(self):
         app.dependency_overrides.pop(get_session)

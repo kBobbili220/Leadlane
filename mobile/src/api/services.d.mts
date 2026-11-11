@@ -3,6 +3,7 @@ export interface NativeConnection {
   apiUrl?: string;
   hostUri?: string | null;
   fetchImpl?: typeof fetch;
+  accessToken?: string;
 }
 export function resolveApiUrl(connection?: NativeConnection): string;
 export function createNativeService(payload: ServicePayload, connection?: NativeConnection): Promise<ServiceRecord>;

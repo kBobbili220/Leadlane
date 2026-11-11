@@ -28,7 +28,7 @@ def main() -> int:
     try:
         settings = get_settings()
     except ValidationError:
-        print("Configuration invalid. Check DATABASE_URL and DEV_BUSINESS_ID in your environment/.env.")
+        print("Configuration invalid. Check DATABASE_URL and authentication settings in your environment/.env.")
         return 1
     if settings.database_url is None:
         print("DATABASE_URL is missing.")
@@ -52,16 +52,14 @@ def main() -> int:
                 print("Required tables are missing from the connection's search path. Apply the SQL migration to this database.")
                 return 1
             print("Required tables: OK")
-            if settings.dev_business_id is None:
-                print("DEV_BUSINESS_ID is missing.")
+            auth_tables = connection.execute(text(
+                "SELECT to_regclass('users'), to_regclass('business_memberships'), "
+                "to_regclass('auth_sessions'), to_regclass('auth_rate_limits')"
+            )).one()
+            if any(table is None for table in auth_tables):
+                print("Authentication tables are missing. Apply 002_owner_auth.sql after the initial migration.")
                 return 1
-            active = connection.scalar(text(
-                "SELECT EXISTS (SELECT 1 FROM businesses WHERE id = :id AND is_active = true)"
-            ), {"id": settings.dev_business_id})
-            if not active:
-                print("DEV_BUSINESS_ID does not identify an active business in this database.")
-                return 1
-            print("Business context: OK")
+            print("Authentication schema: OK")
             print("All checks passed. Restart FastAPI using this same virtual environment and configuration.")
             return 0
     except (SQLAlchemyError, ValueError, ImportError) as exc:
